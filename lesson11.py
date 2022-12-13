@@ -48,10 +48,7 @@ class AddressBook(UserDict):
         result = ""
         for name, fields in self.data.items():
             if fields.birthday:
-                if fields.birthday.date:
-                    result += f"{name}: phones: {fields.phones}, birthday {fields.birthday.date.date()}\n"
-                else:
-                    result += f"{name}: phones: {fields.phones}\n"
+                result += f"{name}: phones: {fields.phones}, birthday {fields.birthday.date()}\n"
             else:
                 result += f"{name}: phones: {fields.phones}\n"
         print(result)
@@ -81,38 +78,36 @@ class AddressBook(UserDict):
     def iterator(self):
         for name, fields in self.data.items():
             if fields.birthday:
-                if fields.birthday.date:
-                    yield f"{name}: phones: {fields.phones}, birthday {fields.birthday.date.date()}"
-                else:
-                    yield f"{name}: phones: {fields.phones}"
+                yield f"{name}: phones: {fields.phones}, birthday {fields.birthday.date()}"
             else:
                 yield f"{name}: phones: {fields.phones}"
 
 
 class Field:
-    pass
-
-class Name(Field):
     def __init__(self, value):
+        self._value = None
         self.value = value
 
-class Phone(Field):
-    def __init__(self, phone):
-        self.__phone = None
-        self.phone = phone
-
     @property
-    def phone(self):
-        return self.__phone
+    def value(self):
+        return self._value
 
-    @phone.setter
-    def phone(self, new_phone):
-        fixed_phone = self.sanitize_phone_number(new_phone)
+    @value.setter
+    def value(self, new_value):
+        self._value = new_value
+
+class Name(Field):
+    pass
+
+class Phone(Field):
+    @Field.value.setter
+    def value(self, value):
+        fixed_phone = self.sanitize_phone_number(value)
         if len(fixed_phone) < 10 or len(fixed_phone) > 12:
             raise ValueError('Wrong format of phone, must be 10 or 12 numbers')
         if not fixed_phone.isnumeric():
             raise ValueError('Wrong format of phone, must be only numbers')
-        self.__phone = fixed_phone
+        self._value = fixed_phone
 
     def sanitize_phone_number(self, phone):
         new_phone = (
@@ -126,19 +121,11 @@ class Phone(Field):
         return new_phone
 
 class Birthday(Field):
-    def __init__(self, date):
-        self.__date = None
-        self.date = date
-
-    @property
-    def date(self):
-        return self.__date
-
-    @date.setter
-    def date(self, new_date):
+    @Field.value.setter
+    def value(self, value):
         try:
-            new_date = datetime.strptime(new_date, '%d.%m.%Y')
-            self.__date = new_date
+            value = datetime.strptime(value, '%d.%m.%Y')
+            self._value = value
         except ValueError:
             print('Wrong format of date, must be "dd.mm.yyyy"')
 
@@ -151,24 +138,21 @@ class Record:
 
     def add_phone(self, phone):
         added_phone = Phone(phone)
-        self.phones.append(added_phone.phone)
+        self.phones.append(added_phone.value)
 
     def add_birthday(self, date):
         added_birthday = Birthday(date)
-        self.birthday = added_birthday
+        self.birthday = added_birthday.value
 
     def days_to_birthday(self):
         if self.birthday:
-            if self.birthday.date:
-                current_date = datetime.now()
-                birthday = self.birthday.date
-                birthday = birthday.replace(year=current_date.year)
-                if birthday < current_date:
-                    birthday = birthday.replace(year=current_date.year + 1)
-                result = birthday - current_date
-                print(f'{result.days} left to {self.name.value} birthday.')
-            else:
-                print('I don\'t know when he have birthday')
+            current_date = datetime.now()
+            birthday = self.birthday
+            birthday = birthday.replace(year=current_date.year)
+            if birthday < current_date:
+                birthday = birthday.replace(year=current_date.year + 1)
+            result = birthday - current_date
+            print(f'{result.days} left to {self.name.value} birthday.')
         else:
             print('I don\'t know when he have birthday')
 
