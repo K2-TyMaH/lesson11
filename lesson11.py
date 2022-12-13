@@ -48,9 +48,13 @@ class AddressBook(UserDict):
         result = ""
         for name, fields in self.data.items():
             if fields.birthday:
-                result += f"{name}: phones: {fields.phones}, birthday {fields.birthday.date()}\n"
+                if fields.birthday.value:
+                    result += f"{name}: phones: {[phone.value for phone in fields.phones]}, " \
+                              f"birthday {fields.birthday.value.date()}\n"
+                else:
+                    result += f"{name}: phones: {[phone.value for phone in fields.phones]}\n"
             else:
-                result += f"{name}: phones: {fields.phones}\n"
+                result += f"{name}: phones: {[phone.value for phone in fields.phones]}\n"
         print(result)
 
     def remove_phones(self, name):
@@ -78,9 +82,13 @@ class AddressBook(UserDict):
     def iterator(self):
         for name, fields in self.data.items():
             if fields.birthday:
-                yield f"{name}: phones: {fields.phones}, birthday {fields.birthday.date()}"
+                if fields.birthday.value:
+                    yield f"{name}: phones: {[phone.value for phone in fields.phones]}, " \
+                          f"birthday {fields.birthday.value.date()}"
+                else:
+                    yield f"{name}: phones: {[phone.value for phone in fields.phones]}"
             else:
-                yield f"{name}: phones: {fields.phones}"
+                yield f"{name}: phones: {[phone.value for phone in fields.phones]}"
 
 
 class Field:
@@ -137,22 +145,23 @@ class Record:
         self.birthday = None
 
     def add_phone(self, phone):
-        added_phone = Phone(phone)
-        self.phones.append(added_phone.value)
+        self.phones.append(Phone(phone))
 
     def add_birthday(self, date):
-        added_birthday = Birthday(date)
-        self.birthday = added_birthday.value
+        self.birthday = Birthday(date)
 
     def days_to_birthday(self):
         if self.birthday:
-            current_date = datetime.now()
-            birthday = self.birthday
-            birthday = birthday.replace(year=current_date.year)
-            if birthday < current_date:
-                birthday = birthday.replace(year=current_date.year + 1)
-            result = birthday - current_date
-            print(f'{result.days} left to {self.name.value} birthday.')
+            if self.birthday.value:
+                current_date = datetime.now()
+                birthday = self.birthday.value
+                birthday = birthday.replace(year=current_date.year)
+                if birthday < current_date:
+                    birthday = birthday.replace(year=current_date.year + 1)
+                result = birthday - current_date
+                print(f'{result.days} left to {self.name.value} birthday.')
+            else:
+                print('I don\'t know when he have birthday')
         else:
             print('I don\'t know when he have birthday')
 
@@ -248,7 +257,7 @@ def iter_book(n):
 def show_number(name):
     result = USERS.find_user(name)
     if result:
-        return f"{name}: {result.phones}"
+        return f"{name}: {[phone.value for phone in result.phones]}"
     else:
         print(f'User {name} doesn\'t exist.')
         return f'Do you wanna do something else?'
